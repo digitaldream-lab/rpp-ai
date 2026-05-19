@@ -6,43 +6,70 @@ use Illuminate\Http\Request;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Materi;
-use Smalot\PdfParser\Parser; // <--- Menggunakan parser baru yang murni PHP
+use Spatie\PdfToText\Pdf;
 use Inertia\Inertia;
 
 class GuruController extends Controller
 {
-    public function dashboard(Request $request) {
+    /**
+     * Menampilkan Dashboard Guru dengan data Kelas, Mapel, dan Materi.
+     */
+    public function dashboard(Request $request)
+    {
         $userId = $request->user()->id;
 
-        $kelas = Kelas::where('user_id', $userId)->with('mataPelajarans')->get();
+        // Ambil kelas milik guru yang sedang login beserta mapel di dalamnya
+        $kelas = Kelas::where('user_id', $userId)
+            ->with('mataPelajarans')
+            ->get();
+
+        // Ambil semua mapel yang dimiliki guru melalui kelasnya
         $kelasIds = $kelas->pluck('id');
         $mapels = MataPelajaran::whereIn('kelas_id', $kelasIds)->get();
-        $materis = Materi::whereIn('mata_pelajaran_id', $mapels->pluck('id'))->with('mataPelajaran.kelas')->get();
+
+        // Ambil semua materi yang sudah diupload
+        $materis = Materi::whereIn('mata_pelajaran_id', $mapels->pluck('id'))
+            ->with('mataPelajaran.kelas')
+            ->get();
 
         return Inertia::render('Guru/Dashboard', [
             'kelas' => $kelas,
             'mapels' => $mapels,
-            'materis' => $materis
+            'materis' => $materis,
         ]);
     }
 
+    // A1: Buat Kelas
     public function storeKelas(Request $request) {
-        $request->validate(['nama_jenjang' => 'required|string']);
-        $request->user()->kelas()->create(['nama_jenjang' => $request->nama_jenjang]);
-        return redirect()->back()->with('success', 'Kelas berhasil dibuat.');
+        $request->validate([
+            'nama_jenjang' => 'required|string|max:50'
+        ]);
+
+        $request->user()->kelas()->create([
+            'nama_jenjang' => $request->nama_jenjang
+        ]);
+
+        return redirect()->back()->with('success', 'Kelas berhasil dibuat!');
     }
 
+    // A2: Buat Mapel
     public function storeMapel(Request $request) {
         $request->validate([
             'kelas_id' => 'required|exists:kelas,id', 
-            'nama' => 'required|string', 
-            'is_agama' => 'boolean'
+            'nama' => 'required|string|max:100', 
+            'is_agama' => 'required|boolean'
         ]);
-        MataPelajaran::create($request->all());
-        return redirect()->back()->with('success', 'Mata Pelajaran berhasil ditambahkan.');
+
+        MataPelajaran::create([
+            'kelas_id' => $request->kelas_id,
+            'nama' => $request->nama,
+            'is_agama' => $request->is_agama
+        ]);
+
+        return redirect()->back()->with('success', 'Mata Pelajaran berhasil dibuat!');
     }
 
-    // A3: UPLOAD DAN EKSTRAK TEKS PDF (DIJAMIN BERHASIL DI WINDOWS)
+    // A3: Upload Materi & Ekstrak Teks PDF
     public function storeMateri(Request $request) {
         $request->validate([
             'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id', 
@@ -53,26 +80,19 @@ class GuruController extends Controller
         $path = $request->file('file')->store('materis', 'public');
         $fullPath = storage_path('app/public/' . $path);
         
-        $extractedText = "";
-        
+        // Proteksi jika komputer lokal (Windows/Herd) belum terinstall Poppler/pdftotext
+        $text = "Teks materi gagal diekstrak otomatis. Silakan isi RPP manual atau pastikan Poppler terinstall.";
         try {
-            // Menggunakan Smalot PDF Parser (Tanpa butuh Poppler)
-            $pdfParser = new Parser();
-            $pdf = $pdfParser->parseFile($fullPath);
-            $extractedText = $pdf->getText();
-            
-            // Membersihkan teks dari spasi kosong berlebih agar ringan dikirim ke AI
-            $extractedText = preg_replace('/\s+/', ' ', $extractedText);
-            
+            $text = Pdf::getText($fullPath);
         } catch (\Exception $e) {
-            logger("Smalot PDF extraction failed: " . $e->getMessage());
-            $extractedText = "Gagal membaca teks PDF.";
+            // Tetap simpan record meski ekstraksi PDF gagal agar aplikasi tidak crash
+            logger("Spatie PdfToText Error: " . $e->getMessage());
         }
 
         Materi::create([
             'mata_pelajaran_id' => $request->mata_pelajaran_id,
             'file_path' => $path,
-            'extracted_text' => $extractedText,
+            'extracted_text' => $text,
             'referensi_link' => $request->referensi_link
         ]);
 

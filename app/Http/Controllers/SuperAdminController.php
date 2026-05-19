@@ -9,14 +9,18 @@ use Inertia\Inertia;
 
 class SuperAdminController extends Controller
 {
-    public function dashboard() {
+    /**
+     * Menampilkan Dashboard Pengaturan Superadmin.
+     */
+    public function dashboard()
+    {
         return Inertia::render('SuperAdmin/Dashboard', [
             'fourCs' => FourC::all(),
             'dalils' => Dalil::all()
         ]);
     }
 
-    // B1: Simpan Batasan 4C
+    // B1: Buat Batasan 4C
     public function storeFourC(Request $request) {
         $request->validate([
             'kategori' => 'required|in:Creativity,Critical Thinking,Communication,Collaboration', 
@@ -27,14 +31,14 @@ class SuperAdminController extends Controller
         return redirect()->back()->with('success', 'Batasan 4C berhasil disimpan.');
     }
 
-    // B2: Kelola Database Dalil
+    // B2: Kelola Dalil
     public function storeDalil(Request $request) {
         $data = $request->validate([
             'kategori' => 'required|in:Al-Quran,Hadis', 
-            'referensi' => 'required|string', 
+            'referensi' => 'required|string|max:150', 
             'arti' => 'required|string', 
             'deskripsi' => 'nullable|string', 
-            'keyword' => 'required|string',
+            'keyword' => 'required|string|max:100',
             'gambar' => 'nullable|image|max:2048'
         ]);
 
@@ -43,6 +47,6 @@ class SuperAdminController extends Controller
         }
 
         Dalil::create($data);
-        return redirect()->back()->with('success', 'Dalil berhasil ditambahkan.');
+        return redirect()->back()->with('success', 'Dalil berhasil disimpan.');
     }
 }
