@@ -69,7 +69,7 @@
         </div>
         
         <div v-if="aiResponseText" class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl mb-4">
-          <p class="text-sm mb-2 font-bold text-emerald-800">AI Groq:</p>
+          <p class="text-sm mb-2 font-bold text-emerald-800">Respons AI Groq:</p>
           <p class="text-sm text-gray-700 select-all leading-relaxed whitespace-pre-wrap">{{ aiResponseText }}</p>
           <p class="text-[10px] text-emerald-600 mt-3 font-semibold">*Silakan blok teks di atas lalu salin (copy) dan tempel (paste) ke dalam editor utama.</p>
         </div>
