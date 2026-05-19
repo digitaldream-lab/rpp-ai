@@ -52,6 +52,20 @@ class GuruController extends Controller
         return redirect()->back()->with('success', 'Kelas berhasil dibuat!');
     }
 
+    //A1.1 mengelola kelas
+    public function updateKelas(Request $request, $id) {
+        $request->validate(['nama_jenjang' => 'required']);
+        $kelas = \App\Models\Kelas::findOrFail($id);
+        $kelas->update(['nama_jenjang' => $request->nama_jenjang]);
+        return redirect()->back()->with('success', 'Kelas berhasil diperbarui.');
+        }
+
+    public function destroyKelas($id) {
+        $kelas = \App\Models\Kelas::findOrFail($id);
+        $kelas->delete();
+        return redirect()->back()->with('success', 'Kelas berhasil dihapus.');
+    }
+
     // A2: Buat Mapel
     public function storeMapel(Request $request) {
         $request->validate([

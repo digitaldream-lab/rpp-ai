@@ -35,7 +35,7 @@
       </div>
 
       <!-- Tab 1: Pembuatan Kelas Baru (A1) -->
-      <div v-if="activeTab === 'buat_kelas'" class="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+       <div v-if="activeTab === 'buat_kelas'" class="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <h2 class="text-xl font-bold text-gray-900 mb-4">A1. Buat Kelas Baru</h2>
         <form @submit.prevent="submitKelas" class="space-y-4">
           <div>
@@ -44,15 +44,22 @@
           </div>
           <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold shadow-md transition">Buat Kelas Baru</button>
         </form>
-
-        <h3 class="text-lg font-bold text-gray-900 mt-8 mb-3">Daftar Kelas</h3>
-        <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-          <div v-for="item in kelas" :key="item.id" class="py-3 flex justify-between items-center">
-            <span class="font-medium text-gray-800">Kelas {{ item.nama_jenjang }}</span>
-            <span class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-500">{{ item.mata_pelajarans?.length || 0 }} Mapel</span>
+          <h3 class="text-lg font-bold text-gray-900 mt-8 mb-3">Daftar Kelas</h3>
+          <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+            <div v-for="item in kelas" :key="item.id" class="py-3 flex justify-between items-center">
+              <div v-if="editingId !== item.id">
+                <span class="font-medium text-gray-800">Kelas {{ item.nama_jenjang }}</span>
+              </div>
+              <div v-else class="flex gap-2">
+                <input v-model="editForm.nama_jenjang" class="border p-1 rounded text-sm" />
+                <button @click="saveEdit(item.id)" class="text-green-600 text-xs font-bold">Simpan</button>
+              </div>
+              <div class="flex gap-3">
+                <button @click="startEdit(item)" class="text-blue-600 text-xs hover:underline">Edit</button>
+                <button @click="deleteKelas(item.id)" class="text-red-600 text-xs hover:underline">Hapus</button>
+              </div>
+            </div>
           </div>
-          <div v-if="kelas.length === 0" class="py-3 text-center text-gray-400 italic">Belum ada kelas yang terdaftar.</div>
-        </div>
       </div>
 
       <!-- Tab 2: Pembuatan Mata Pelajaran Baru (A2) -->
@@ -231,6 +238,26 @@ const activeTab = ref('buat_kelas');
 const selectedKelasForMateri = ref('');
 const selectedKelasForRpp = ref('');
 const loadingGenerate = ref(false);
+
+const editingId = ref(null);
+const editForm = useForm({ nama_jenjang: '' });
+
+const startEdit = (item) => {
+  editingId.value = item.id;
+  editForm.nama_jenjang = item.nama_jenjang;
+};
+
+const saveEdit = (id) => {
+  editForm.put(route('guru.kelas.update', id), {
+    onSuccess: () => { editingId.value = null; }
+  });
+};
+
+const deleteKelas = (id) => {
+  if (confirm('Yakin ingin menghapus kelas ini?')) {
+    useForm({}).delete(route('guru.kelas.destroy', id));
+  }
+};
 
 // Sistem Notifikasi Alternatif alert()
 const notification = ref({ show: false, message: '', isError: false });

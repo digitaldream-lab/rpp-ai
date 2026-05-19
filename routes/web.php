@@ -29,6 +29,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/admin', [SuperAdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::post('/admin/4c', [SuperAdminController::class, 'storeFourC'])->name('admin.4c.store');
     Route::post('/admin/dalil', [SuperAdminController::class, 'storeDalil'])->name('admin.dalil.store');
+
+    //hapus kelas oleh guru
+  Route::delete('/guru/kelas/{id}', [GuruController::class, 'destroyKelas'])->name('guru.kelas.destroy');
+Route::put('/guru/kelas/{id}', [GuruController::class, 'updateKelas'])->name('guru.kelas.update');
 });
 
 require __DIR__.'/auth.php';
