@@ -64,38 +64,53 @@
 
       <!-- Tab 2: Pembuatan Mata Pelajaran Baru (A2) -->
       <div v-if="activeTab === 'buat_mapel'" class="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">A2. Buat Mata Pelajaran</h2>
-        <form @submit.prevent="submitMapel" class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Kelas</label>
-            <select v-model="formMapel.kelas_id" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500" required>
-              <option value="">-- Pilih Kelas --</option>
-              <option v-for="item in kelas" :key="item.id" :value="item.id">Kelas {{ item.nama_jenjang }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Mata Pelajaran</label>
-            <input v-model="formMapel.nama" type="text" placeholder="Contoh: Matematika, IPA, Agama Islam" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500" required />
-          </div>
-          <div class="flex items-center">
-            <input v-model="formMapel.is_agama" id="is_agama" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
-            <label for="is_agama" class="ml-2 block text-sm text-gray-900">Apakah ini mata pelajaran agama?</label>
-          </div>
-          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold shadow-md transition">Buat Mata Pelajaran</button>
-        </form>
+  <h2 class="text-xl font-bold text-gray-900 mb-4">A2. Buat Mata Pelajaran</h2>
+  <form @submit.prevent="submitMapel" class="space-y-4">
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Kelas</label>
+      <select v-model="formMapel.kelas_id" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500" required>
+        <option value="">-- Pilih Kelas --</option>
+        <option v-for="item in kelas" :key="item.id" :value="item.id">Kelas {{ item.nama_jenjang }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Mata Pelajaran</label>
+      <input v-model="formMapel.nama" type="text" placeholder="Contoh: Matematika, IPA" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500" required />
+    </div>
+    <div class="flex items-center">
+      <input v-model="formMapel.is_agama" id="is_agama" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+      <label for="is_agama" class="ml-2 block text-sm text-gray-900">Apakah ini mata pelajaran agama?</label>
+    </div>
+    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold shadow-md transition">Buat Mata Pelajaran</button>
+  </form>
 
-        <h3 class="text-lg font-bold text-gray-900 mt-8 mb-3">Daftar Mata Pelajaran Terbuat</h3>
-        <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
-          <div v-for="item in mapels" :key="item.id" class="py-3 flex justify-between items-center">
-            <div>
-              <span class="font-medium text-gray-800">{{ item.nama }}</span>
-              <span v-if="item.is_agama" class="ml-2 text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">Agama</span>
-            </div>
-            <span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">Kelas {{ kelas.find(k => k.id === item.kelas_id)?.nama_jenjang }}</span>
-          </div>
-          <div v-if="mapels.length === 0" class="py-3 text-center text-gray-400 italic">Belum ada mata pelajaran yang dibuat.</div>
-        </div>
+  <h3 class="text-lg font-bold text-gray-900 mt-8 mb-3">Daftar Mata Pelajaran Terbuat</h3>
+  <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto">
+    <div v-for="item in mapels" :key="item.id" class="py-3 flex justify-between items-center">
+      
+      <!-- Mode Tampilan -->
+      <div v-if="editingMapelId !== item.id">
+        <span class="font-medium text-gray-800">{{ item.nama }}</span>
+        <span v-if="item.is_agama" class="ml-2 text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">Agama</span>
+        <span class="ml-2 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">Kelas {{ kelas.find(k => k.id === item.kelas_id)?.nama_jenjang }}</span>
       </div>
+
+      <!-- Mode Edit -->
+      <div v-else class="flex gap-2">
+        <input v-model="editMapelForm.nama" class="border p-1 rounded text-sm w-32" />
+        <button @click="saveEditMapel(item.id)" class="text-green-600 text-xs font-bold hover:underline">Simpan</button>
+        <button @click="editingMapelId = null" class="text-gray-400 text-xs hover:underline">Batal</button>
+      </div>
+
+      <!-- Tombol Aksi -->
+      <div v-if="editingMapelId !== item.id" class="flex gap-3">
+        <button @click="startEditMapel(item)" class="text-blue-600 text-xs hover:underline">Edit</button>
+        <button @click="deleteMapel(item.id)" class="text-red-600 text-xs hover:underline">Hapus</button>
+      </div>
+    </div>
+    <div v-if="mapels.length === 0" class="py-3 text-center text-gray-400 italic">Belum ada mata pelajaran yang dibuat.</div>
+  </div>
+</div>
 
       <!-- Tab 3: Upload Materi Pembelajaran (A3) -->
       <div v-if="activeTab === 'upload_materi'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -321,5 +336,31 @@ const submitGenerateRpp = () => {
       showNotification('Gagal memproses RPP dengan AI. Mohon periksa API Key OpenAI di .env.', true);
     }
   });
+};
+
+//hapus dan edit mapel
+const editingMapelId = ref(null);
+const editMapelForm = useForm({ nama: '' });
+
+const startEditMapel = (item) => {
+  editingMapelId.value = item.id;
+  editMapelForm.nama = item.nama;
+};
+
+const saveEditMapel = (id) => {
+  editMapelForm.put('/guru/mapel/' + id, {
+    onSuccess: () => { 
+      editingMapelId.value = null; 
+      alert('Mata pelajaran diperbarui!');
+    }
+  });
+};
+
+const deleteMapel = (id) => {
+  if (confirm('Yakin ingin menghapus mata pelajaran ini?')) {
+    useForm({}).delete('/guru/mapel/' + id, {
+      onSuccess: () => alert('Mata pelajaran dihapus!')
+    });
+  }
 };
 </script>

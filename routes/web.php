@@ -30,9 +30,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/admin/4c', [SuperAdminController::class, 'storeFourC'])->name('admin.4c.store');
     Route::post('/admin/dalil', [SuperAdminController::class, 'storeDalil'])->name('admin.dalil.store');
 
-    //hapus kelas oleh guru
-  Route::delete('/guru/kelas/{id}', [GuruController::class, 'destroyKelas'])->name('guru.kelas.destroy');
-Route::put('/guru/kelas/{id}', [GuruController::class, 'updateKelas'])->name('guru.kelas.update');
-});
+    //kelola kelas oleh guru
+    Route::delete('/guru/kelas/{id}', [GuruController::class, 'destroyKelas'])->name('guru.kelas.destroy');
+    Route::put('/guru/kelas/{id}', [GuruController::class, 'updateKelas'])->name('guru.kelas.update');
+
+    //kelola mapel
+    Route::put('/guru/mapel/{id}', [GuruController::class, 'updateMapel'])->name('guru.mapel.update');
+    Route::delete('/guru/mapel/{id}', [GuruController::class, 'destroyMapel'])->name('guru.mapel.destroy');
+    
+    });
+
+    
 
 require __DIR__.'/auth.php';

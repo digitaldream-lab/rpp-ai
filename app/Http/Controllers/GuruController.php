@@ -83,6 +83,20 @@ class GuruController extends Controller
         return redirect()->back()->with('success', 'Mata Pelajaran berhasil dibuat!');
     }
 
+    //a2.2 kelola mapel
+    public function updateMapel(Request $request, $id) {
+        $request->validate(['nama' => 'required|string|max:100']);
+        $mapel = \App\Models\MataPelajaran::findOrFail($id);
+        $mapel->update(['nama' => $request->nama]);
+        return redirect()->back()->with('success', 'Mata pelajaran berhasil diperbarui.');
+    }
+
+    public function destroyMapel($id) {
+        $mapel = \App\Models\MataPelajaran::findOrFail($id);
+        $mapel->delete();
+        return redirect()->back()->with('success', 'Mata pelajaran berhasil dihapus.');
+    }
+
     // A3: Upload Materi & Ekstrak Teks PDF
     public function storeMateri(Request $request) {
         $request->validate([
