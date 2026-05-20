@@ -123,7 +123,52 @@ class GuruController extends Controller
             'extracted_text' => $text,
             'referensi_link' => $request->referensi_link
         ]);
+        
 
         return redirect()->back()->with('success', 'Materi berhasil diunggah.');
+    }
+
+    // Fungsi Update Materi
+    public function updateMateri(Request $request, $id) {
+        $request->validate([
+            'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id',
+            'referensi_link' => 'nullable|url',
+            'file' => 'nullable|mimes:pdf|max:10000' // Tambahan validasi file
+        ]);
+
+        $materi = \App\Models\Materi::findOrFail($id);
+        
+        $dataUpdate = [
+            'mata_pelajaran_id' => $request->mata_pelajaran_id,
+            'referensi_link' => $request->referensi_link
+        ];
+
+        // Jika guru mengunggah file baru saat edit
+        if ($request->hasFile('file')) {
+            // 1. Hapus file PDF lama dari storage
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($materi->file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($materi->file_path);
+            }
+
+            // 2. Simpan file PDF baru
+            $path = $request->file('file')->store('materis', 'public');
+            $fullPath = storage_path('app/public/' . $path);
+
+            // 3. Ekstrak teks dari PDF baru
+            $text = "Teks materi gagal diekstrak otomatis. Silakan isi RPP manual atau pastikan Poppler terinstall.";
+            try {
+                $text = \Spatie\PdfToText\Pdf::getText($fullPath);
+            } catch (\Exception $e) {
+                logger("Spatie PdfToText Error: " . $e->getMessage());
+            }
+
+            // Masukkan data file baru ke array update
+            $dataUpdate['file_path'] = $path;
+            $dataUpdate['extracted_text'] = $text;
+        }
+
+        $materi->update($dataUpdate);
+
+        return redirect()->back()->with('success', 'Materi berhasil diperbarui.');
     }
 }

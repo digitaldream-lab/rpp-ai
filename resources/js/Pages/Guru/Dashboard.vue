@@ -112,67 +112,113 @@
   </div>
 </div>
 
-      <!-- Tab 3: Upload Materi Pembelajaran (A3) -->
-      <div v-if="activeTab === 'upload_materi'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <!-- Form Upload Berkas PDF -->
-        <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">A3. Unggah Berkas Materi</h2>
-          <form @submit.prevent="submitMateri" class="space-y-4">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Kelas</label>
-              <select v-model="selectedKelasForMateri" class="w-full border-gray-300 rounded-lg shadow-sm" required>
-                <option value="">-- Pilih Kelas --</option>
-                <option v-for="item in kelas" :key="item.id" :value="item.id">Kelas {{ item.nama_jenjang }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Mata Pelajaran</label>
-              <select v-model="formMateri.mata_pelajaran_id" class="w-full border-gray-300 rounded-lg shadow-sm" required>
-                <option value="">-- Pilih Mapel --</option>
-                <option v-for="item in filteredMapelsForMateri" :key="item.id" :value="item.id">{{ item.nama }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Berkas Referensi (Format PDF)</label>
-              <input type="file" @change="handleFileUpload" accept="application/pdf" class="w-full border border-gray-300 p-2 rounded-lg" required />
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1">Link Referensi Tambahan (Opsional)</label>
-              <input v-model="formMateri.referensi_link" type="url" placeholder="[https://sumber-referensi.com](https://sumber-referensi.com)" class="w-full border-gray-300 rounded-lg shadow-sm" />
-            </div>
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold shadow transition">Upload Berkas</button>
-          </form>
-        </div>
-
-        <!-- Tabel Monitoring Berkas Terunggah -->
-        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Materi Berhasil Terunggah</h2>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-              <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
-                <tr>
-                  <th class="px-6 py-3 text-left">Kelas</th>
-                  <th class="px-6 py-3 text-left">Mata Pelajaran</th>
-                  <th class="px-6 py-3 text-left">Nama Berkas PDF</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100 text-gray-700">
-                <tr v-for="item in materis" :key="item.id">
-                  <td class="px-6 py-4 font-semibold">Kelas {{ item.mata_pelajaran?.kelas?.nama_jenjang }}</td>
-                  <td class="px-6 py-4">{{ item.mata_pelajaran?.nama }}</td>
-                  <td class="px-6 py-4 text-indigo-600 font-medium truncate max-w-xs">
-                    <a :href="'/storage/' + item.file_path" target="_blank" class="hover:underline">{{ item.file_path.split('/').pop() }}</a>
-                  </td>
-                </tr>
-                <tr v-if="materis.length === 0">
-                  <td colspan="3" class="px-6 py-10 text-center text-gray-400 italic">Belum ada berkas materi yang diunggah.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+     <!-- Tab 3: Upload Materi Pembelajaran (A3) -->
+<div v-if="activeTab === 'upload_materi'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  
+  <!-- Form Upload Berkas PDF -->
+  <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">A3. Unggah Berkas Materi</h2>
+    <form @submit.prevent="submitMateri" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Kelas</label>
+        <select v-model="selectedKelasForMateri" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+          <option value="">-- Pilih Kelas --</option>
+          <option v-for="item in kelas" :key="item.id" :value="item.id">Kelas {{ item.nama_jenjang }}</option>
+        </select>
       </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Pilih Mata Pelajaran</label>
+        <select v-model="formMateri.mata_pelajaran_id" class="w-full border-gray-300 rounded-lg shadow-sm" required>
+          <option value="">-- Pilih Mapel --</option>
+          <option v-for="item in filteredMapelsForMateri" :key="item.id" :value="item.id">{{ item.nama }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Berkas Referensi (Format PDF)</label>
+        <input type="file" @change="handleFileUpload" accept="application/pdf" class="w-full border border-gray-300 p-2 rounded-lg" required />
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Link Referensi Tambahan (Opsional)</label>
+        <input v-model="formMateri.referensi_link" type="url" placeholder="https://sumber-referensi.com" class="w-full border-gray-300 rounded-lg shadow-sm" />
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg font-semibold shadow transition">Upload Berkas</button>
+    </form>
+  </div>
+
+  <!-- Tabel Monitoring Berkas Terunggah -->
+  <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">Materi Berhasil Terunggah</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase">
+          <tr>
+            <th class="px-6 py-3 text-left">Kelas & Mapel</th>
+            <th class="px-6 py-3 text-left">Nama Berkas & Referensi</th>
+            <th class="px-6 py-3 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 text-gray-700">
+          <template v-for="item in materis" :key="item.id">
+            
+            <!-- MODE TAMPILAN: Jika sedang tidak diedit -->
+            <tr v-if="editingMateriId !== item.id">
+              <td class="px-6 py-4">
+                <div class="font-semibold text-gray-900">Kelas {{ item.mata_pelajaran?.kelas?.nama_jenjang }}</div>
+                <div class="text-xs text-gray-500">{{ item.mata_pelajaran?.nama }}</div>
+              </td>
+              <td class="px-6 py-4">
+                <a :href="'/storage/' + item.file_path" target="_blank" class="text-indigo-600 font-medium hover:underline truncate max-w-xs block">
+                  {{ item.file_path.split('/').pop() }}
+                </a>
+                <a v-if="item.referensi_link" :href="item.referensi_link" target="_blank" class="text-xs text-blue-500 hover:underline mt-1 block">
+                  Buka Referensi Tambahan
+                </a>
+              </td>
+              <td class="px-6 py-4 text-center whitespace-nowrap">
+                <button @click="startEditMateri(item)" class="text-blue-600 hover:text-blue-900 text-xs font-medium mr-3 transition">Edit</button>
+                <button @click="deleteMateri(item.id)" class="text-red-600 hover:text-red-900 text-xs font-medium transition">Hapus</button>
+              </td>
+            </tr>
+
+            <!-- MODE EDIT: Jika sedang diedit -->
+            <tr v-else class="bg-indigo-50/30">
+              <td class="px-6 py-4" colspan="2">
+                <div class="flex flex-col gap-3">
+                  <div>
+                    <label class="text-xs font-semibold text-gray-600">Pindah Mata Pelajaran:</label>
+                    <select v-model="editMateriForm.mata_pelajaran_id" class="w-full border-gray-300 rounded p-1.5 text-sm mt-1 bg-white">
+                      <option v-for="mapel in mapels" :key="mapel.id" :value="mapel.id">
+                        Kelas {{ kelas.find(k => k.id === mapel.kelas_id)?.nama_jenjang }} - {{ mapel.nama }}
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-semibold text-gray-600">Update Link Referensi:</label>
+                    <input v-model="editMateriForm.referensi_link" type="url" placeholder="https://..." class="w-full border-gray-300 rounded p-1.5 text-sm mt-1 bg-white" />
+                  </div>
+                  <!-- TAMBAHAN FORM UPLOAD BERKAS DI MODE EDIT -->
+                  <div>
+                    <label class="text-xs font-semibold text-gray-600">Ganti Berkas PDF (Opsional):</label>
+                    <input type="file" @change="handleEditFileUpload" accept="application/pdf" class="w-full border-gray-300 rounded p-1 text-sm mt-1 bg-white" />
+                    <div class="text-[10px] text-gray-500 mt-0.5">Biarkan kosong jika tidak ingin mengganti file PDF sebelumnya.</div>
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-center whitespace-nowrap align-top pt-8">
+                <button @click="saveEditMateri(item.id)" class="text-green-700 hover:text-green-900 text-xs font-bold mr-2 bg-green-100 px-3 py-1.5 rounded transition">Simpan</button>
+                <button @click="editingMateriId = null" class="text-gray-600 hover:text-gray-900 text-xs font-medium bg-gray-200 px-3 py-1.5 rounded transition">Batal</button>
+              </td>
+            </tr>
+          </template>
+
+          <tr v-if="materis.length === 0">
+            <td colspan="3" class="px-6 py-10 text-center text-gray-400 italic">Belum ada berkas materi yang diunggah.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
       <!-- Tab 4: Form Pemrosesan RPP (A4) -->
       <div v-if="activeTab === 'generate_rpp'" class="max-w-xl mx-auto bg-white p-8 rounded-3xl shadow-md border border-gray-100">
@@ -360,6 +406,45 @@ const deleteMapel = (id) => {
   if (confirm('Yakin ingin menghapus mata pelajaran ini?')) {
     useForm({}).delete('/guru/mapel/' + id, {
       onSuccess: () => alert('Mata pelajaran dihapus!')
+    });
+  }
+};
+
+// hapus dan edit materi
+const editingMateriId = ref(null);
+const editMateriForm = useForm({ 
+  _method: 'put', // WAJIB ADA AGAR BISA UPLOAD FILE SAAT EDIT
+  mata_pelajaran_id: '', 
+  referensi_link: '',
+  file: null
+});
+
+const handleEditFileUpload = (e) => {
+  editMateriForm.file = e.target.files[0];
+};
+
+const startEditMateri = (item) => {
+  editingMateriId.value = item.id;
+  editMateriForm.mata_pelajaran_id = item.mata_pelajaran_id;
+  editMateriForm.referensi_link = item.referensi_link || '';
+  editMateriForm.file = null; // Reset file
+};
+
+const saveEditMateri = (id) => {
+  // PENTING: Harus gunakan .post() bukan .put() karena ada payload File()
+  editMateriForm.post('/guru/materi/' + id, {
+    preserveScroll: true,
+    onSuccess: () => { 
+      editingMateriId.value = null; 
+      alert('Informasi materi berhasil diperbarui!');
+    }
+  });
+};
+
+const deleteMateri = (id) => {
+  if (confirm('Yakin ingin menghapus materi ini? File PDF-nya juga akan terhapus secara permanen.')) {
+    useForm({}).delete('/guru/materi/' + id, {
+      onSuccess: () => alert('Materi berhasil dihapus!')
     });
   }
 };
