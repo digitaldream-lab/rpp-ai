@@ -4,42 +4,71 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\RppController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-// Halaman utama otomatis mengarah ke login
+/*
+|--------------------------------------------------------------------------
+| Web Routes - Aplikasi RPP Berbasis AI
+|--------------------------------------------------------------------------
+*/
+
+// 1. RUTE SMART HOME (Dapat diakses publik)
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
 Route::middleware(['auth'])->group(function () {
     
+    // TAMBAHKAN RUTE JEMBATAN INI UNTUK MENGATASI ERROR ROUTE NOT FOUND
+    Route::get('/dashboard', function () {
+        // Jika yang login adalah admin, arahkan ke dashboard admin
+        if (Auth::user()->email === 'admin@gmail.com') { 
+            return redirect()->route('admin.dashboard');
+        }
+        // Selain admin (berarti guru), arahkan ke dashboard guru
+        return redirect()->route('guru.dashboard');
+    })->name('dashboard');
+
     // Dashboard Utama Guru
     Route::get('/guru', [GuruController::class, 'dashboard'])->name('guru.dashboard');
     Route::post('/guru/kelas', [GuruController::class, 'storeKelas'])->name('guru.kelas.store');
+    
+    // A2: Buat Mata Pelajaran
     Route::post('/guru/mapel', [GuruController::class, 'storeMapel'])->name('guru.mapel.store');
+    
+    // A3: Upload Materi PDF & Ekstrak Teks
     Route::post('/guru/materi', [GuruController::class, 'storeMateri'])->name('guru.materi.store');
     
-    // Logika Pemrosesan RPP
+    // A4: AI Generation & Online Editor
     Route::post('/rpp/generate', [RppController::class, 'generate'])->name('rpp.generate');
     Route::post('/rpp/generate-image', [RppController::class, 'generateImage'])->name('rpp.image');
     Route::post('/rpp/edit-text', [RppController::class, 'editAiText'])->name('rpp.edit-text');
     Route::post('/rpp/save', [RppController::class, 'saveAndDownload'])->name('rpp.save');
 
-    // Dashboard Utama Superadmin
+    // ==========================================
+    // ALUR SUPERADMIN (B1, B2)
+    // ==========================================
+    
+    // Tampilan Dashboard Superadmin
     Route::get('/admin', [SuperAdminController::class, 'dashboard'])->name('admin.dashboard');
+    
+    // B1: Buat Batasan 4C
     Route::post('/admin/4c', [SuperAdminController::class, 'storeFourC'])->name('admin.4c.store');
+    
+    // B2: Kelola Database Dalil
     Route::post('/admin/dalil', [SuperAdminController::class, 'storeDalil'])->name('admin.dalil.store');
 
-    //kelola kelas oleh guru
-    Route::delete('/guru/kelas/{id}', [GuruController::class, 'destroyKelas'])->name('guru.kelas.destroy');
-    Route::put('/guru/kelas/{id}', [GuruController::class, 'updateKelas'])->name('guru.kelas.update');
+    // ==========================================
+    // SISTEM LOGOUT AMAN
+    // ==========================================
+    Route::get('/logout', function () {
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+        return redirect()->route('login');
+    })->name('logout.get');
+});
 
-    //kelola mapel
-    Route::put('/guru/mapel/{id}', [GuruController::class, 'updateMapel'])->name('guru.mapel.update');
-    Route::delete('/guru/mapel/{id}', [GuruController::class, 'destroyMapel'])->name('guru.mapel.destroy');
-    
-    });
-
-    
-
+// 3. RUTE AUTHENTICATION BREEZE (Login, Register, Logout POST, dll)
 require __DIR__.'/auth.php';
