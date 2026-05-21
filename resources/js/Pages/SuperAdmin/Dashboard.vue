@@ -18,17 +18,10 @@
         {{ notification.message }}
       </div>
 
-      <div class="flex space-x-1 bg-slate-900 border border-slate-800 p-1.5 rounded-xl mb-10 max-w-sm">
-        <button 
-          v-for="tab in ['batasan_4c', 'kelola_dalil']" 
-          :key="tab"
-          @click="activeTab = tab"
-          :class="[
-            'w-full py-2 text-sm font-semibold rounded-lg transition-all',
-            activeTab === tab ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800'
-          ]"
-        >
-          {{ tab === 'batasan_4c' ? '🎯 Batasan 4C' : '📖 Kelola Dalil' }}
+      <div class="flex space-x-1 bg-slate-900 border border-slate-800 p-1.5 rounded-xl mb-10 max-w-lg">
+        <button v-for="tab in ['batasan_4c', 'kelola_dalil', 'kelola_guru']" :key="tab" @click="activeTab = tab"
+          :class="['w-full py-2 text-sm font-semibold rounded-lg transition-all', activeTab === tab ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white hover:bg-slate-800']">
+          {{ tab === 'batasan_4c' ? '🎯 Batasan 4C' : (tab === 'kelola_dalil' ? '📖 Kelola Dalil' : '👨‍🏫 Kelola Guru') }}
         </button>
       </div>
 
@@ -180,6 +173,33 @@
 
       </div>
 
+      <div v-if="activeTab === 'kelola_guru'" class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div class="lg:col-span-1 bg-slate-900 border border-slate-800 p-6 rounded-3xl h-fit">
+          <h2 class="text-xl font-bold text-white mb-6">{{ editingGuruId ? 'Edit Guru' : 'Daftarkan Guru' }}</h2>
+          <form @submit.prevent="editingGuruId ? saveEditGuru(editingGuruId) : submitGuru" class="space-y-4 text-sm">
+            <input v-model="formGuru.name" placeholder="Nama Lengkap" class="w-full bg-slate-950 border-slate-800 rounded-lg text-slate-100" required />
+            <input v-model="formGuru.email" type="email" placeholder="Email/Username" class="w-full bg-slate-950 border-slate-800 rounded-lg text-slate-100" required />
+            <input v-model="formGuru.password" type="password" :placeholder="editingGuruId ? 'Password baru (opsional)' : 'Password'" class="w-full bg-slate-950 border-slate-800 rounded-lg text-slate-100" />
+            <input v-model="formGuru.jabatan" placeholder="Jabatan" class="w-full bg-slate-950 border-slate-800 rounded-lg text-slate-100" />
+            <button class="w-full bg-indigo-600 py-3 rounded-xl font-bold text-white">{{ editingGuruId ? 'Simpan Perubahan' : 'Daftarkan Guru' }}</button>
+            <button v-if="editingGuruId" @click="resetGuruForm" type="button" class="w-full text-slate-400 text-xs">Batal Edit</button>
+          </form>
+        </div>
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-3xl">
+          <table class="w-full text-sm divide-y divide-slate-800 text-slate-300">
+            <thead class="text-slate-400 text-xs uppercase text-left"><tr><th class="py-3">Nama</th><th>Email</th><th>Jabatan</th><th class="text-center">Aksi</th></tr></thead>
+            <tbody>
+              <tr v-for="guru in gurus" :key="guru.id" class="border-t border-slate-800">
+                <td class="py-4">{{ guru.name }}</td><td>{{ guru.email }}</td><td>{{ guru.jabatan }}</td>
+                <td class="text-center"><button @click="startEditGuru(guru)" class="text-blue-400 mr-2">Edit</button><button @click="deleteGuru(guru.id)" class="text-red-400">Hapus</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+
+
     </div>
   </div>
 </template>
@@ -188,11 +208,7 @@
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 
-const props = defineProps({
-  fourCs: Array,
-  dalils: Array
-});
-
+const props = defineProps({ fourCs: Array, dalils: Array, gurus: Array });
 const activeTab = ref('batasan_4c');
 const selectedCategory = ref('Creativity');
 
@@ -218,6 +234,8 @@ const formDalil = useForm({
   keyword: '',
   gambar: null
 });
+
+const formGuru = useForm({ name: '', email: '', password: '', jabatan: '' });
 
 const select4C = (category) => {
   selectedCategory.value = category;
@@ -248,5 +266,12 @@ const submitDalil = () => {
       showNotification('Dalil agama baru berhasil diverifikasi dan ditambahkan!');
     }
   });
+
+  const submitGuru = () => formGuru.post(route('admin.guru.store'), { onSuccess: () => { formGuru.reset(); showNotification('Guru ditambah.'); } });
+
+  const startEditGuru = (guru) => { editingGuruId.value = guru.id; formGuru.name = guru.name; formGuru.email = guru.email; formGuru.jabatan = guru.jabatan; };
+const saveEditGuru = (id) => formGuru.put(route('admin.guru.update', id), { onSuccess: () => { editingGuruId.value = null; formGuru.reset(); showNotification('Data diperbarui.'); } });
+const deleteGuru = (id) => { if(confirm('Hapus guru?')) useForm({}).delete(route('admin.guru.destroy', id), { onSuccess: () => showNotification('Guru dihapus.'), }); };
+const resetGuruForm = () => { editingGuruId.value = null; formGuru.reset(); };
 };
 </script>

@@ -61,6 +61,11 @@ Route::middleware(['auth'])->group(function () {
     // B2: Kelola Database Dalil
     Route::post('/admin/dalil', [SuperAdminController::class, 'storeDalil'])->name('admin.dalil.store');
 
+    // Kelola Akun Guru oleh Admin
+    Route::post('/admin/guru', [SuperAdminController::class, 'storeGuru'])->name('admin.guru.store');
+    Route::put('/admin/guru/{id}', [SuperAdminController::class, 'updateGuru'])->name('admin.guru.update');
+    Route::delete('/admin/guru/{id}', [SuperAdminController::class, 'destroyGuru'])->name('admin.guru.destroy');
+
     // ==========================================
     // SISTEM LOGOUT AMAN
     // ==========================================
