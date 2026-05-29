@@ -24,7 +24,9 @@ class SuperAdminController extends Controller
         ]);
     }
 
-    // --- LOGIKA KELOLA GURU ---
+    // ==========================================
+    // LOGIKA KELOLA GURU
+    // ==========================================
 
     public function storeGuru(Request $request) {
         $request->validate([
@@ -36,7 +38,7 @@ class SuperAdminController extends Controller
 
         User::create([
             'name' => $request->name,
-            'email' => $request->email, // Email bertindak sebagai username
+            'email' => $request->email,
             'password' => Hash::make($request->password),
             'jabatan' => $request->jabatan ?? 'Guru Mata Pelajaran',
         ]);
@@ -58,7 +60,6 @@ class SuperAdminController extends Controller
         $guru->email = $request->email;
         $guru->jabatan = $request->jabatan ?? 'Guru Mata Pelajaran';
         
-        // Hanya update password jika kolom diisi
         if ($request->filled('password')) {
             $guru->password = Hash::make($request->password);
         }
@@ -75,34 +76,64 @@ class SuperAdminController extends Controller
         return redirect()->back()->with('success', 'Akun Guru berhasil dihapus.');
     }
 
-    // --- LOGIKA KELOLA 4C & DALIL (Kode sebelumnya) ---
+    // ==========================================
+    // LOGIKA BATASAN 4C
+    // ==========================================
 
     public function storeFourC(Request $request) {
-        $request->validate(['kategori' => 'required', 'batasan_deskripsi' => 'required']);
+        $request->validate([
+            'kategori' => 'required|string', 
+            'batasan_deskripsi' => 'required|string'
+        ]);
+        
         FourC::create($request->all());
         return redirect()->back()->with('success', 'Batasan 4C berhasil disimpan.');
     }
 
-    public function storeDalil(Request $request) {
-    $data = $request->validate([
-        'kategori' => 'required',
-        'referensi' => 'required',
-        'arti' => 'required',
-        'deskripsi' => 'nullable',
-        'keyword' => 'required',
-        'gambar' => 'nullable|image' // Validasi untuk file gambar
-    ]);
+    // FUNGSI BARU: Update Batasan 4C
+    public function updateFourC(Request $request, $id) {
+        $request->validate([
+            'batasan_deskripsi' => 'required|string'
+        ]);
 
-    // Jika ada file gambar, simpan dan masukkan path ke 'gambar_path'
-    if ($request->hasFile('gambar')) {
-        $data['gambar_path'] = $request->file('gambar')->store('dalils', 'public');
+        $fourC = FourC::findOrFail($id);
+        $fourC->update([
+            'batasan_deskripsi' => $request->batasan_deskripsi
+        ]);
+
+        return redirect()->back()->with('success', 'Batasan 4C berhasil diperbarui.');
     }
 
-    // Hapus kunci 'gambar' agar tidak error saat diproses oleh Dalil::create
-    unset($data['gambar']);
+    // FUNGSI BARU: Hapus Batasan 4C
+    public function destroyFourC($id) {
+        $fourC = FourC::findOrFail($id);
+        $fourC->delete();
 
-    Dalil::create($data);
-    
-    return redirect()->back()->with('success', 'Dalil berhasil disimpan.');
-}
+        return redirect()->back()->with('success', 'Batasan 4C berhasil dihapus.');
+    }
+
+    // ==========================================
+    // LOGIKA KELOLA DALIL
+    // ==========================================
+
+    public function storeDalil(Request $request) {
+        $data = $request->validate([
+            'kategori' => 'required',
+            'referensi' => 'required',
+            'arti' => 'required',
+            'deskripsi' => 'nullable',
+            'keyword' => 'required',
+            'gambar' => 'nullable|image' 
+        ]);
+
+        if ($request->hasFile('gambar')) {
+            $data['gambar_path'] = $request->file('gambar')->store('dalils', 'public');
+        }
+
+        unset($data['gambar']);
+
+        Dalil::create($data);
+        
+        return redirect()->back()->with('success', 'Dalil berhasil disimpan.');
+    }
 }

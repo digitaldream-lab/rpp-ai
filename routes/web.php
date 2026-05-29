@@ -57,6 +57,8 @@ Route::middleware(['auth'])->group(function () {
 
     // B1: Buat Batasan 4C
     Route::post('/admin/4c', [SuperAdminController::class, 'storeFourC'])->name('admin.4c.store');
+    Route::put('/admin/4c/{id}', [SuperAdminController::class, 'updateFourC'])->name('admin.4c.update');
+    Route::delete('/admin/4c/{id}', [SuperAdminController::class, 'destroyFourC'])->name('admin.4c.destroy');
 
     // B2: Kelola Database Dalil
     Route::post('/admin/dalil', [SuperAdminController::class, 'storeDalil'])->name('admin.dalil.store');
