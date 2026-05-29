@@ -6,31 +6,23 @@ use Illuminate\Http\Request;
 use App\Models\Kelas;
 use App\Models\MataPelajaran;
 use App\Models\Materi;
-use Spatie\PdfToText\Pdf;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Storage;
+use ZipArchive;
 
 class GuruController extends Controller
 {
     /**
-     * Menampilkan Dashboard Guru dengan data Kelas, Mapel, dan Materi.
+     * Menampilkan Dashboard Guru
      */
     public function dashboard(Request $request)
     {
         $userId = $request->user()->id;
 
-        // Ambil kelas milik guru yang sedang login beserta mapel di dalamnya
-        $kelas = Kelas::where('user_id', $userId)
-            ->with('mataPelajarans')
-            ->get();
-
-        // Ambil semua mapel yang dimiliki guru melalui kelasnya
+        $kelas = Kelas::where('user_id', $userId)->with('mataPelajarans')->orderBy('created_at', 'desc')->get();
         $kelasIds = $kelas->pluck('id');
-        $mapels = MataPelajaran::whereIn('kelas_id', $kelasIds)->get();
-
-        // Ambil semua materi yang sudah diupload
-        $materis = Materi::whereIn('mata_pelajaran_id', $mapels->pluck('id'))
-            ->with('mataPelajaran.kelas')
-            ->get();
+        $mapels = MataPelajaran::whereIn('kelas_id', $kelasIds)->orderBy('created_at', 'desc')->get();
+        $materis = Materi::whereIn('mata_pelajaran_id', $mapels->pluck('id'))->with('mataPelajaran.kelas')->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Guru/Dashboard', [
             'kelas' => $kelas,
@@ -39,136 +31,194 @@ class GuruController extends Controller
         ]);
     }
 
-    // A1: Buat Kelas
+    // ==========================================
+    // KELOLA KELAS
+    // ==========================================
     public function storeKelas(Request $request) {
-        $request->validate([
-            'nama_jenjang' => 'required|string|max:50'
-        ]);
-
-        $request->user()->kelas()->create([
-            'nama_jenjang' => $request->nama_jenjang
-        ]);
-
+        $request->validate(['nama_jenjang' => 'required|string|max:50']);
+        $request->user()->kelas()->create(['nama_jenjang' => $request->nama_jenjang]);
         return redirect()->back()->with('success', 'Kelas berhasil dibuat!');
     }
 
-    //A1.1 mengelola kelas
     public function updateKelas(Request $request, $id) {
-        $request->validate(['nama_jenjang' => 'required']);
-        $kelas = \App\Models\Kelas::findOrFail($id);
-        $kelas->update(['nama_jenjang' => $request->nama_jenjang]);
-        return redirect()->back()->with('success', 'Kelas berhasil diperbarui.');
-        }
-
-    public function destroyKelas($id) {
-        $kelas = \App\Models\Kelas::findOrFail($id);
-        $kelas->delete();
-        return redirect()->back()->with('success', 'Kelas berhasil dihapus.');
+        $request->validate(['nama_jenjang' => 'required|string|max:50']);
+        Kelas::where('id', $id)->where('user_id', $request->user()->id)->update(['nama_jenjang' => $request->nama_jenjang]);
+        return redirect()->back()->with('success', 'Kelas diperbarui!');
     }
 
-    // A2: Buat Mapel
+    public function destroyKelas(Request $request, $id) {
+        Kelas::where('id', $id)->where('user_id', $request->user()->id)->delete();
+        return redirect()->back()->with('success', 'Kelas dihapus!');
+    }
+
+    // ==========================================
+    // KELOLA MAPEL
+    // ==========================================
     public function storeMapel(Request $request) {
         $request->validate([
             'kelas_id' => 'required|exists:kelas,id', 
             'nama' => 'required|string|max:100', 
             'is_agama' => 'required|boolean'
         ]);
-
-        MataPelajaran::create([
-            'kelas_id' => $request->kelas_id,
-            'nama' => $request->nama,
-            'is_agama' => $request->is_agama
-        ]);
-
+        MataPelajaran::create($request->only(['kelas_id', 'nama', 'is_agama']));
         return redirect()->back()->with('success', 'Mata Pelajaran berhasil dibuat!');
     }
 
-    //a2.2 kelola mapel
     public function updateMapel(Request $request, $id) {
-        $request->validate(['nama' => 'required|string|max:100']);
-        $mapel = \App\Models\MataPelajaran::findOrFail($id);
-        $mapel->update(['nama' => $request->nama]);
-        return redirect()->back()->with('success', 'Mata pelajaran berhasil diperbarui.');
+        $request->validate([
+            'nama' => 'required|string|max:100', 
+            'is_agama' => 'required|boolean'
+        ]);
+        MataPelajaran::findOrFail($id)->update($request->only(['nama', 'is_agama']));
+        return redirect()->back()->with('success', 'Mata Pelajaran diperbarui!');
     }
 
     public function destroyMapel($id) {
-        $mapel = \App\Models\MataPelajaran::findOrFail($id);
-        $mapel->delete();
-        return redirect()->back()->with('success', 'Mata pelajaran berhasil dihapus.');
+        MataPelajaran::findOrFail($id)->delete();
+        return redirect()->back()->with('success', 'Mata Pelajaran dihapus!');
     }
 
-    // A3: Upload Materi & Ekstrak Teks PDF
+    // ==========================================
+    // FUNGSI BANTUAN: EKSTRAK TEKS DARI FILE
+    // ==========================================
+    private function extractTextFromFile($fullPath, $extension) {
+        $extracted = "";
+        try {
+            if ($extension === 'pdf') {
+                // Coba gunakan Smalot atau Spatie jika tersedia
+                if (class_exists(\Smalot\PdfParser\Parser::class)) {
+                    $parser = new \Smalot\PdfParser\Parser();
+                    $pdf = $parser->parseFile($fullPath);
+                    $extracted = $pdf->getText();
+                } elseif (class_exists(\Spatie\PdfToText\Pdf::class)) {
+                    $extracted = \Spatie\PdfToText\Pdf::getText($fullPath);
+                }
+            } elseif ($extension === 'docx') {
+                $zip = new ZipArchive;
+                if ($zip->open($fullPath) === true) {
+                    $content = $zip->getFromName('word/document.xml');
+                    if ($content !== false) {
+                        $content = str_replace('</w:p>', " \n ", $content);
+                        $extracted = strip_tags($content);
+                    }
+                    $zip->close();
+                }
+            } elseif ($extension === 'txt') {
+                $extracted = file_get_contents($fullPath);
+            }
+        } catch (\Exception $e) {
+            logger("Ekstraksi File Gagal: " . $e->getMessage());
+        }
+        
+        return preg_replace('/\s+/', ' ', trim($extracted));
+    }
+
+    // ==========================================
+    // KELOLA MATERI (UPLOAD FILE & TEKS MANUAL)
+    // ==========================================
     public function storeMateri(Request $request) {
         $request->validate([
             'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id', 
-            'file' => 'required|mimes:pdf|max:10000', 
+            'file' => 'nullable|mimes:pdf,doc,docx,txt|max:10000', 
+            'teks_manual' => 'nullable|string',
             'referensi_link' => 'nullable|url'
         ]);
         
-        $path = $request->file('file')->store('materis', 'public');
-        $fullPath = storage_path('app/public/' . $path);
-        
-        // Proteksi jika komputer lokal (Windows/Herd) belum terinstall Poppler/pdftotext
-        $text = "Teks materi gagal diekstrak otomatis. Silakan isi RPP manual atau pastikan Poppler terinstall.";
-        try {
-            $text = Pdf::getText($fullPath);
-        } catch (\Exception $e) {
-            // Tetap simpan record meski ekstraksi PDF gagal agar aplikasi tidak crash
-            logger("Spatie PdfToText Error: " . $e->getMessage());
+        $path = null;
+        $extractedText = "";
+        $sumberTeks = "Tidak ada materi";
+
+        // 1. Jika ada file yang diunggah
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $extension = strtolower($file->getClientOriginalExtension());
+            $path = $file->store('materis', 'public');
+            $fullPath = storage_path('app/public/' . $path);
+            
+            $extractedText = $this->extractTextFromFile($fullPath, $extension);
+            $sumberTeks = "File " . strtoupper($extension);
         }
+
+        // 2. Jika ekstrak file gagal (teks terlalu pendek) ATAU file tidak diunggah,
+        // Gunakan input teks manual sebagai penyelamat (fallback)
+        if (strlen($extractedText) < 20) {
+            if (!empty($request->teks_manual)) {
+                $extractedText = trim($request->teks_manual);
+                $sumberTeks = "Teks Manual";
+            } else {
+                $extractedText = "Materi tidak terbaca dan teks manual kosong. AI akan membuatkan RPP berdasarkan pengetahuan kurikulum umum.";
+                $sumberTeks = "Pengetahuan Umum AI";
+            }
+        }
+
+        $charCount = strlen($extractedText);
 
         Materi::create([
             'mata_pelajaran_id' => $request->mata_pelajaran_id,
             'file_path' => $path,
-            'extracted_text' => $text,
+            'extracted_text' => $extractedText,
             'referensi_link' => $request->referensi_link
         ]);
-        
 
-        return redirect()->back()->with('success', 'Materi berhasil diunggah.');
+        return redirect()->back()->with('success', "Materi berhasil disiapkan. (Sumber: {$sumberTeks} | Terbaca: {$charCount} karakter)");
     }
 
-    // Fungsi Update Materi
     public function updateMateri(Request $request, $id) {
+        $materi = Materi::findOrFail($id);
+        
         $request->validate([
             'mata_pelajaran_id' => 'required|exists:mata_pelajarans,id',
             'referensi_link' => 'nullable|url',
-            'file' => 'nullable|mimes:pdf|max:10000' // Tambahan validasi file
+            'file' => 'nullable|mimes:pdf,doc,docx,txt|max:10000',
+            'teks_manual' => 'nullable|string'
         ]);
 
-        $materi = \App\Models\Materi::findOrFail($id);
-        
-        $dataUpdate = [
-            'mata_pelajaran_id' => $request->mata_pelajaran_id,
-            'referensi_link' => $request->referensi_link
-        ];
+        $materi->mata_pelajaran_id = $request->mata_pelajaran_id;
+        $materi->referensi_link = $request->referensi_link;
 
-        // Jika guru mengunggah file baru saat edit
+        $extractedText = $materi->extracted_text; 
+        $sumberTeks = "Data Lama";
+
+        // Jika user upload file baru saat proses edit
         if ($request->hasFile('file')) {
-            // 1. Hapus file PDF lama dari storage
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($materi->file_path)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($materi->file_path);
+            // Hapus file lama
+            if ($materi->file_path && Storage::disk('public')->exists($materi->file_path)) {
+                Storage::disk('public')->delete($materi->file_path);
             }
-
-            // 2. Simpan file PDF baru
-            $path = $request->file('file')->store('materis', 'public');
+            
+            $file = $request->file('file');
+            $extension = strtolower($file->getClientOriginalExtension());
+            $path = $file->store('materis', 'public');
             $fullPath = storage_path('app/public/' . $path);
-
-            // 3. Ekstrak teks dari PDF baru
-            $text = "Teks materi gagal diekstrak otomatis. Silakan isi RPP manual atau pastikan Poppler terinstall.";
-            try {
-                $text = \Spatie\PdfToText\Pdf::getText($fullPath);
-            } catch (\Exception $e) {
-                logger("Spatie PdfToText Error: " . $e->getMessage());
-            }
-
-            // Masukkan data file baru ke array update
-            $dataUpdate['file_path'] = $path;
-            $dataUpdate['extracted_text'] = $text;
+            $materi->file_path = $path;
+            
+            $extractedText = $this->extractTextFromFile($fullPath, $extension);
+            $sumberTeks = "File Baru " . strtoupper($extension);
         }
 
-        $materi->update($dataUpdate);
+        // Cek lagi apakah butuh fallback ke teks manual
+        if (strlen($extractedText) < 20 && !empty($request->teks_manual)) {
+            $extractedText = trim($request->teks_manual);
+            $sumberTeks = "Teks Manual Baru";
+        }
 
-        return redirect()->back()->with('success', 'Materi berhasil diperbarui.');
+        $materi->extracted_text = $extractedText;
+        $materi->save();
+        
+        $charCount = strlen($extractedText);
+        return redirect()->back()->with('success', "Materi berhasil diperbarui. (Sumber: {$sumberTeks} | Terbaca: {$charCount} karakter)");
+    }
+
+    public function destroyMateri($id) {
+        $materi = Materi::findOrFail($id);
+        
+        // Hapus file fisiknya dari penyimpanan server agar tidak memenuhi harddisk
+        if ($materi->file_path && Storage::disk('public')->exists($materi->file_path)) {
+            Storage::disk('public')->delete($materi->file_path);
+        }
+        
+        $materi->delete();
+        
+        return redirect()->back()->with('success', 'Materi berhasil dihapus.');
     }
 }
