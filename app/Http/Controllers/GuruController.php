@@ -23,6 +23,7 @@ class GuruController extends Controller
         $kelasIds = $kelas->pluck('id');
         $mapels = MataPelajaran::whereIn('kelas_id', $kelasIds)->orderBy('created_at', 'desc')->get();
         $materis = Materi::whereIn('mata_pelajaran_id', $mapels->pluck('id'))->with('mataPelajaran.kelas')->orderBy('created_at', 'desc')->get();
+        
 
         return Inertia::render('Guru/Dashboard', [
             'kelas' => $kelas,
@@ -221,4 +222,6 @@ class GuruController extends Controller
         
         return redirect()->back()->with('success', 'Materi berhasil dihapus.');
     }
+
+    
 }
